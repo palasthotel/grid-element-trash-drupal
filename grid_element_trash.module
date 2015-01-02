@@ -80,20 +80,32 @@ function grid_element_trash_box_trash()
 			'#title'=> $class.t(' meta type Boxes'),
 		);
 
-		if($class == "grid_reference_box"){
-			$meta_form['info']=array(
-				'#type'=>'markup',
-				'#markup'=>'<div><small>Referenzboxen</small></div>',
-			);
-			
-		} else {
-			/**
-			 * get all available implementations of meta type box
-			 */
-			$obj=new $class();
-			$obj->storage = $storage;
-			$searchresult=$obj->metaSearch($meta_box->metaSearchCriteria(),"");
-			foreach ($searchresult as $key => $box) {
+		/**
+		 * get all available implementations of meta type box
+		 */
+		$obj=new $class();
+		$obj->storage = $storage;
+		$searchresult=$obj->metaSearch($meta_box->metaSearchCriteria(),"");
+		foreach ($searchresult as $key => $box) 
+		{
+			if($class == "grid_reference_box")
+			{
+				/**
+				 * reusable boxes
+				 */
+				$meta_form['grid_element_trash_box_reused_'.$box->content->boxid.'_trashed']=array(
+					'#type'=>'checkboxes',
+					'#options'=>$options,
+					'#title'=>$box->render(true),
+					'#default_value' => variable_get('grid_element_trash_box_reused_'.$box->content->boxid.'_trashed',0)
+				);
+				
+			} 
+			else 
+			{
+				/**
+				 * all other box types
+				 */
 				$type = $box->type();
 				$meta_form['grid_element_trash_box_'.$type.'_trashed']=array(
 					'#type'=>'checkboxes',
@@ -102,6 +114,7 @@ function grid_element_trash_box_trash()
 					'#default_value' => variable_get('grid_element_trash_box_'.$type.'_trashed',0)
 				);
 			}
+			
 		}
 
 		$form['trash_'.$class] = $meta_form;
@@ -179,7 +192,7 @@ function grid_element_trash_container_trash()
 	{
 		$type = $container["type"];
 		/**
-		 * only content containers
+		 * only content containers and sidebars
 		 */
 		if(strpos($type, "c-") !== 0 && strpos($type, "s-") !== 0) continue;
 
@@ -246,6 +259,12 @@ function grid_element_trash_grid_containers_alter(&$containers,$grid_id,$node_id
 	}
 }
 
+/**
+ * hide reusable containers in grid that had been moved to trash
+ * @param  array $containers 	dataset to be modified
+ * @param  int $grid_id     	grid id
+ * @param  int $node_id     	node id
+ */
 function grid_element_trash_grid_reusable_containers_alter(&$containers,$grid_id,$node_id)
 {
 	$node = node_load($node_id);
