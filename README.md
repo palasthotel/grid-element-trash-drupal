@@ -1,4 +1,4 @@
-grid-element-trash-wordpress
-============================
+grid-element-trash-drupal
+=========================
 
-Plugin for trashing containers and boxes from grid toolbar by hook
+Module for trashing containers and boxes that are not needed anymore from grid editor toolbars
