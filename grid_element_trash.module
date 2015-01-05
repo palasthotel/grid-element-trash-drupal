@@ -93,10 +93,14 @@ function grid_element_trash_box_trash()
 				/**
 				 * reusable boxes
 				 */
+				$meta_form['renderd_ref_box_'.$box->content->boxid]=array(
+					'#type'=>'markup',
+					'#markup'=>"<hr>".$box->render(true),
+				);
 				$meta_form['grid_element_trash_box_reused_'.$box->content->boxid.'_trashed']=array(
 					'#type'=>'checkboxes',
 					'#options'=>$options,
-					'#title'=>$box->render(true),
+					'#title'=>$box->type(),
 					'#default_value' => variable_get('grid_element_trash_box_reused_'.$box->content->boxid.'_trashed',0)
 				);
 				
@@ -138,8 +142,16 @@ function grid_element_trash_grid_boxes_search_alter(&$boxes,$grid_id,$node_id)
 	$node = node_load($node_id);
 	for($i=0;$i<count($boxes);$i++)
 	{
-		$map = variable_get('grid_element_trash_box_'.$boxes[$i]['type'].'_trashed',0);
-	    if( $map[$node->type] )
+		if($boxes[$i]['type'] == "reference")
+		{
+			$map = variable_get('grid_element_trash_box_reused_'.$boxes[$i]["content"]->boxid.'_trashed',0);
+			
+		} 
+		else 
+		{
+			$map = variable_get('grid_element_trash_box_'.$boxes[$i]['type'].'_trashed',0);
+		}
+		if( $map[$node->type] )
 	    {
 	        array_splice($boxes,$i,1);
 	        $i--;
