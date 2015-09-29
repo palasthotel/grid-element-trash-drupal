@@ -2,131 +2,7 @@
 /**
 * Register menus and urls
 */
-function grid_element_trash_menu() 
-{
-	return array(
-		'admin/config/grid/boxtrash'=>array(
-			'title'=>t('Box Trash'),
-			'description'=>t('Administrate Box Trash'),
-			'page callback'=>'drupal_get_form',
-			'page arguments'=>array('grid_element_trash_box_trash'),
-			'access arguments'=>array('administer grid'),
-			'type'=>MENU_NORMAL_ITEM,
-			'weight' => 9,
-		),
-		'admin/config/grid/containertrash'=>array(
-			'title'=>t('Container Trash'),
-			'description'=>t('Administrate Container Trash'),
-			'page callback'=>'drupal_get_form',
-			'page arguments'=>array('grid_element_trash_container_trash'),
-			'access arguments'=>array('administer grid'),
-			'type'=>MENU_NORMAL_ITEM,
-			'weight' => 9,
-		),
-	);
-}
-/**
-*	Register grid element trash permission.
-*/
-function grid_element_trash_permission() 
-{
-  return array(
-    'administer grid trash' => array(
-      'title' => t('Administer the Container and Box trash of Grid'),
-    ),
-  );
-}
-
-/**
-*	Box Trash form page
-*/
-function grid_element_trash_box_trash()
-{	
-	/**
-	 * get the grid storage
-	 */
-	$storage=grid_get_storage();
-
-	/**
-	 * content_types that are activated for grid
-	 */
-	$extra_fields = grid_field_extra_fields();
-	$content_types = array_keys($extra_fields["node"]);
-
-	$options = array();
-	foreach ($content_types as $content_type) {
-		$options[$content_type] = $content_type;
-	}
-
-	$form=array();
-
-	$form['info']=array(
-			'#type'=>'markup',
-			'#markup'=>'<div><small>'.t('All checked Boxes will be placed in Trash and won\'t be available in Grid anymore.').'</small></div>',
-		);
-
-	/**
-	 * look for all meta type boxes
-	 * @var [type]
-	 */
-	$meta_boxes = $storage->getMetaTypes();
-	foreach ($meta_boxes as $meta_box) 
-	{
-		$class = get_class($meta_box);
-		$meta_form = array(
-			'#type'=>'fieldset',
-			'#collapsible' => true,
-			'#collapsed' => true,
-			'#title'=> $class.t(' meta type Boxes'),
-		);
-
-		/**
-		 * get all available implementations of meta type box
-		 */
-		$obj=new $class();
-		$obj->storage = $storage;
-		$searchresult=$obj->metaSearch($meta_box->metaSearchCriteria(),"");
-		foreach ($searchresult as $key => $box) 
-		{
-			if($class == "grid_reference_box")
-			{
-				/**
-				 * reusable boxes
-				 */
-				$meta_form['renderd_ref_box_'.$box->content->boxid]=array(
-					'#type'=>'markup',
-					'#markup'=>"<hr>".$box->render(true),
-				);
-				$meta_form['grid_element_trash_box_reused_'.$box->content->boxid.'_trashed']=array(
-					'#type'=>'checkboxes',
-					'#options'=>$options,
-					'#title'=>$box->type(),
-					'#default_value' => variable_get('grid_element_trash_box_reused_'.$box->content->boxid.'_trashed',0)
-				);
-				
-			} 
-			else 
-			{
-				/**
-				 * all other box types
-				 */
-				$type = $box->type();
-				$meta_form['grid_element_trash_box_'.$type.'_trashed']=array(
-					'#type'=>'checkboxes',
-					'#options'=>$options,
-					'#title'=>$type,
-					'#default_value' => variable_get('grid_element_trash_box_'.$type.'_trashed',0)
-				);
-			}
-			
-		}
-
-		$form['trash_'.$class] = $meta_form;
-	}
-
-
-	return system_settings_form($form);
-}
+use Drupal\node\Entity\Node;
 
 /**
  * hook_grid_boxes_search_alter
@@ -139,19 +15,22 @@ function grid_element_trash_box_trash()
  */
 function grid_element_trash_grid_boxes_search_alter(&$boxes,$grid_id,$node_id)
 {
-	$node = node_load($node_id);
+	/** @var Node $node */
+	$node = Node::Load($node_id);
+	$trashed=\Drupal::config("grid.trash")->get("trashed_boxes");
+	$trashed_reuse=\Drupal::config("grid.trash")->get("trashed_reuse_boxes");
 	for($i=0;$i<count($boxes);$i++)
 	{
 		if($boxes[$i]['type'] == "reference")
 		{
-			$map = variable_get('grid_element_trash_box_reused_'.$boxes[$i]["content"]->boxid.'_trashed',0);
-			
-		} 
-		else 
-		{
-			$map = variable_get('grid_element_trash_box_'.$boxes[$i]['type'].'_trashed',0);
+			$map = $trashed_reuse[$boxes[$i]["content"]->boxid];
+
 		}
-		if( $map[$node->type] )
+		else
+		{
+			$map = $trashed[$boxes[$i]['type']];
+		}
+		if( $map[$node->getType()] )
 	    {
 	        array_splice($boxes,$i,1);
 	        $i--;
@@ -159,97 +38,7 @@ function grid_element_trash_grid_boxes_search_alter(&$boxes,$grid_id,$node_id)
 	}
 }
 
-/**
-*	Container Trash form page
-*/
-function grid_element_trash_container_trash()
-{	
-	/**
-	 * get the grid storage
-	 */
-	$storage=grid_get_storage();
 
-	/**
-	 * content_types that are activated for grid
-	 */
-	$extra_fields = grid_field_extra_fields();
-	$content_types = array_keys($extra_fields["node"]);
-
-	$options = array();
-	foreach ($content_types as $content_type) {
-		if($content_type == variable_get('grid_sidebar') ) continue;
-		$options[$content_type] = $content_type;
-	}
-
-	$form=array();
-
-	$form['info']=array(
-		'#type'=>'markup',
-		'#markup'=>'<div><small>'.t('All checked Containers will be placed in Trash and won\'t be available in Grid anymore.').'</small></div>',
-	);
-
-	$container_form = array(
-		'#type'=>'fieldset',
-		'#collapsible' => true,
-		'#collapsed' => true,
-		'#title'=> t('Container Trash'),
-	);
-
-	/**
-	 * look for all meta type boxes
-	 * @var [type]
-	 */
-	$container_types = $storage->fetchContainerTypes();
-	foreach ($container_types as $container) 
-	{
-		$type = $container["type"];
-		/**
-		 * only content containers and sidebars
-		 */
-		if(strpos($type, "c-") !== 0 && strpos($type, "s-") !== 0) continue;
-
-		/**
-		 * add checkbox option for type
-		 */
-		$container_form['grid_element_trash_container_'.$type.'_trashed']=array(
-			'#type'=>'checkboxes',
-			'#options' => $options,
-			'#default_value'=>variable_get('grid_element_trash_container_'.$type.'_trashed',0),
-			'#title'=>$type,
-		);
-
-	}
-
-	$form['trash_container'] = $container_form;
-
-	$reusable_form = array(
-		'#type'=>'fieldset',
-		'#collapsible' => true,
-		'#collapsed' => true,
-		'#title'=> t('Reusable Container Trash'),
-	);
-
-	$reused = $storage->getReusedContainerIds();
-
-	foreach ($reused as $reused_container_id) {
-		$container = $storage->loadReuseContainer($reused_container_id);
-		var_dump($container->containerid);
-		/**
-		 * add checkbox option for reused container
-		 */
-		$reusable_form['grid_element_trash_container_reused_'.$container->containerid.'_trashed']=array(
-			'#type'=>'checkboxes',
-			'#options' => $options,
-			'#default_value'=>variable_get('grid_element_trash_container_reused_'.$container->containerid.'_trashed',0),
-			'#title'=>$container->reusetitle,
-		);
-	}
-
-	$form['trash_reusable_container'] = $reusable_form;
-
-
-	return system_settings_form($form);
-}
 
 /**
  * hide grid containers that had been moved to trash
@@ -259,12 +48,14 @@ function grid_element_trash_container_trash()
  */
 function grid_element_trash_grid_containers_alter(&$containers,$grid_id,$node_id)
 {
-	$node = node_load($node_id);
+	/** @var Node $node */
+	$node = Node::load($node_id);
+	$trash=\Drupal::config("grid.trash")->get("trashed_containers");
 	for($i=0;$i<count($containers);$i++)
-	{	
-		$map = variable_get('grid_element_trash_container_'.$containers[$i]["type"].'_trashed',0);
-	    if( $map[$node->type] )
-	    {	
+	{
+		$map = $trash[$containers[$i]["type"]];
+	    if( $map[$node->getType()] )
+	    {
 	        array_splice($containers,$i,1);
 	        $i--;
 	    }
@@ -279,12 +70,14 @@ function grid_element_trash_grid_containers_alter(&$containers,$grid_id,$node_id
  */
 function grid_element_trash_grid_reusable_containers_alter(&$containers,$grid_id,$node_id)
 {
-	$node = node_load($node_id);
+	/** @var Node $node */
+	$node = Node::load($node_id);
+	$trash=\Drupal::config("grid.trash")->get("trashed_reuse_containers");
 	for($i=0;$i<count($containers);$i++)
-	{	
-		$map = variable_get('grid_element_trash_container_reused_'.$containers[$i]["id"].'_trashed',0);
-	    if( $map[$node->type] )
-	    {	
+	{
+		$map = $trash[$containers[$i]["id"]];
+	    if( $map[$node->getType()] )
+	    {
 	        array_splice($containers,$i,1);
 	        $i--;
 	    }

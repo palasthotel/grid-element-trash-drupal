@@ -1,0 +1,15 @@
+admin.config.grid.boxtrash:
+  path: 'admin/config/grid/boxtrash'
+  defaults:
+    _form: '\Drupal\grid_element_trash\Form\BoxForm'
+    _title: Box Trash
+  requirements:
+    _permission: administer grid
+
+admin.config.grid.containertrash:
+  path: 'admin/config/grid/containertrash'
+  defaults:
+    _form: '\Drupal\grid_element_trash\Form\ContainerForm'
+    _title: Container Trash
+  requirements:
+    _permission: administer grid

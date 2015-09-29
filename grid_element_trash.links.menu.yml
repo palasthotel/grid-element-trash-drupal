@@ -1,0 +1,9 @@
+grid.admin.boxtrash:
+  title: Box Trash
+  parent: grid.admin
+  route_name: admin.config.grid.boxtrash
+
+grid.admin.containertrash:
+  title: Container Trash
+  parent: grid.admin
+  route_name: admin.config.grid.containertrash
