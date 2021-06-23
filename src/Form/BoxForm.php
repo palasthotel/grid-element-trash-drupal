@@ -32,6 +32,9 @@ class BoxForm extends ConfigFormBase
          */
         $storage=grid_get_storage();
 
+        $lib=grid_get_library();
+        $api=$lib->api;
+
         /**
          * content_types that are activated for grid
          */
@@ -55,7 +58,7 @@ class BoxForm extends ConfigFormBase
          * @var [type]
          */
         /** @var grid_box[] $meta_boxes */
-        $meta_boxes = $storage->getMetaTypes();
+        $meta_boxes = $api->getMetaTypes();
         foreach ($meta_boxes as $meta_box) {
             $class = get_class($meta_box);
             $meta_form = array(
