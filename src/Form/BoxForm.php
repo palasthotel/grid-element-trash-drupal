@@ -129,11 +129,13 @@ class BoxForm extends ConfigFormBase
     public function submitForm(array &$form, FormStateInterface $form_state)
     {
         $storage=grid_get_storage();
-
+        $lib=grid_get_library();
+        $api=$lib->api;
+        
         $trash_reuse=$this->config("grid.trash")->get("trashed_reuse_boxes");
         $trash_boxes=$this->config("grid.trash")->get("trashed_boxes");
         /** @var grid_box[] $meta_boxes */
-        $meta_boxes = $storage->getMetaTypes();
+        $meta_boxes = $api->getMetaTypes();
         foreach ($meta_boxes as $meta_box)
         {
             $class = get_class($meta_box);
